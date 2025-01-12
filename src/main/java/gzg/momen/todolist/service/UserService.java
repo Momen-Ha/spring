@@ -29,6 +29,11 @@ public class UserService {
 
 
     public AuthenticationResponse createUser(UserDTO userDTO) {
+
+        if (userRepository.existsByEmail(userDTO.getEmail())) {
+            throw new IllegalArgumentException("Email address already in use");
+        }
+
         User user = new User();
         user.setName(userDTO.getName());
         user.setPassword(encoder.encode(userDTO.getPassword()));

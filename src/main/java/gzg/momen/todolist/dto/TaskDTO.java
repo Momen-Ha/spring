@@ -7,9 +7,6 @@ import org.antlr.v4.runtime.misc.NotNull;
 public class TaskDTO {
 
     @NotNull
-    private int userId;
-
-    @NotNull
     private String title;
 
     @NotNull

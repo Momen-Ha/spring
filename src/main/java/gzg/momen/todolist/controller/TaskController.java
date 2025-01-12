@@ -8,6 +8,9 @@ import gzg.momen.todolist.service.TaskService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -24,36 +27,59 @@ public class TaskController {
     }
 
     @PostMapping
-    public ResponseEntity<Task> createTask(@RequestBody @Validated TaskDTO task) {
-        Task createdTask = taskService.createNewTask(task);
-        return new ResponseEntity<>(createdTask, HttpStatus.CREATED);
+    @PreAuthorize("hasAuthority('ROLE_USER')")
+    public ResponseEntity<Task> createTask(@RequestBody @Validated TaskDTO task,
+                                           @AuthenticationPrincipal UserDetails user) {
+
+        try {
+            Task createdTask = taskService.createNewTask(task, user);
+            return new ResponseEntity<>(createdTask, HttpStatus.CREATED);
+        } catch (Exception e) {
+            return new ResponseEntity<>(null, HttpStatus.NOT_FOUND);
+        }
+
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Task> updateTask(@RequestBody @Validated TaskDTO task, @PathVariable Long id) {
-        Task updatedTask = taskService.updateTask(task, id);
-        if(updatedTask == null) {
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+    @PreAuthorize("hasAuthority('ROLE_USER')")
+    public ResponseEntity<?> updateTask(@RequestBody @Validated TaskDTO task,
+                                        @PathVariable Long id,
+                                        @AuthenticationPrincipal UserDetails user) {
+        try {
+            Task updatedTask = taskService.updateTask(task, id, user);
+            return new ResponseEntity<>(updatedTask, HttpStatus.OK);
+        } catch (SecurityException e) {
+            return new ResponseEntity<>("Forbidden", HttpStatus.FORBIDDEN);
+        } catch (IllegalArgumentException e) {
+            return new ResponseEntity<>("Unauthorized", HttpStatus.UNAUTHORIZED);
         }
-        return new ResponseEntity<>(updatedTask, HttpStatus.OK);
     }
+
 
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Task> deleteTask(@PathVariable Long id) {
-        Boolean deleted = taskService.deleteTask(id);
-        if(deleted) {
-            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+    @PreAuthorize("hasAuthority('ROLE_USER')")
+    public ResponseEntity<?> deleteTask(@PathVariable Long id,
+                                        @AuthenticationPrincipal UserDetails user) {
+        try {
+            taskService.deleteTask(id, user);
+            return new ResponseEntity<>(HttpStatus.OK);
+        } catch (SecurityException e) {
+            return new ResponseEntity<>("Forbidden", HttpStatus.FORBIDDEN);
+        } catch (IllegalArgumentException e) {
+            return new ResponseEntity<>("Unauthorized", HttpStatus.UNAUTHORIZED);
         }
-        return new ResponseEntity<>(HttpStatus.NOT_FOUND);
     }
 
+
     @GetMapping("/all")
+    @PreAuthorize("hasAuthority('ROLE_USER')")
     public ResponseEntity<TasksResponse> getAllTasks(
             @RequestParam(value = "page", defaultValue = "0", required = false) int pageNo,
-            @RequestParam(value = "limit", defaultValue = "10", required = false) int pageSize
+            @RequestParam(value = "limit", defaultValue = "10", required = false) int pageSize,
+            @AuthenticationPrincipal UserDetails user
     ) {
-        TasksResponse tasks = taskService.getTasks(pageNo, pageSize, 1L);
+        TasksResponse tasks = taskService.getTasks(pageNo, pageSize, user);
         return new ResponseEntity<>(tasks, HttpStatus.OK);
     }
 }

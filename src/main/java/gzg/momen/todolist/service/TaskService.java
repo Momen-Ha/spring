@@ -11,6 +11,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -23,10 +25,19 @@ public class TaskService {
 
     @Autowired
     private UserRepository userRepository;
+    
+    public User findUserByEmail(UserDetails userDetails) {
+        String email = userDetails.getUsername();
+        User user = userRepository.findByEmail(email);
+        if (user == null) {
+            throw new UsernameNotFoundException("user not found");
+        }
+        return user;
+    }
 
-    public Task createNewTask(TaskDTO taskDTO) {
+    public Task createNewTask(TaskDTO taskDTO, UserDetails userDetails) {
+        User user = findUserByEmail(userDetails);
         Task task = new Task();
-        User user = userRepository.findById(1L).orElseThrow(() -> new RuntimeException("User not found"));
         task.setUser(user);
         task.setTitle(taskDTO.getTitle());
         task.setDescription(taskDTO.getDescription());
@@ -34,25 +45,32 @@ public class TaskService {
         return taskRepository.save(task);
     }
 
-    public Task updateTask(TaskDTO task, Long taskId) {
-        Task updatedTask = taskRepository.findById(taskId).orElse(null);
-        task.setTitle(task.getTitle());
-        task.setDescription(task.getDescription());
-        taskRepository.save(updatedTask);
-        return updatedTask;
-    }
-
-    public Boolean deleteTask(Long taskId) {
-        if(taskRepository.existsById(taskId)) {
-            taskRepository.deleteById(taskId);
-            return true;
+    public Task updateTask(TaskDTO task, Long taskId, UserDetails userDetails) {
+        User user = findUserByEmail(userDetails);
+        Task existingTask = taskRepository.findById(taskId)
+                .orElseThrow(() -> new IllegalArgumentException("Task not found!"));
+        if(!existingTask.getUser().getUserId().equals(user.getUserId())) {
+            throw new SecurityException("not authorized");
         }
-        return false;
+        existingTask.setTitle(task.getTitle());
+        existingTask.setDescription(task.getDescription());
+        return taskRepository.save(existingTask);
     }
 
-    public TasksResponse getTasks(int pageNo, int pageSize , Long userId) {
+    public void deleteTask(Long taskId, UserDetails userDetails) {
+        User user = findUserByEmail(userDetails);
+        Task existingTask = taskRepository.findById(taskId)
+                .orElseThrow(() -> new IllegalArgumentException("Task not found!"));
+        if(!existingTask.getUser().getUserId().equals(user.getUserId())) {
+            throw new SecurityException("not authorized");
+        }
+        taskRepository.delete(existingTask);
+    }
+
+    public TasksResponse getTasks(int pageNo, int pageSize , UserDetails userDetails) {
+        User user = findUserByEmail(userDetails);
         Pageable pageable = PageRequest.of(pageNo, pageSize);
-        Page<Task> tasks = taskRepository.findAllByUser_UserId(userId, pageable);
+        Page<Task> tasks = taskRepository.findAllByUser_UserId(user.getUserId(), pageable);
         List<Task> listOfTasks = tasks.getContent();
 
         TasksResponse tasksResponse = new TasksResponse();

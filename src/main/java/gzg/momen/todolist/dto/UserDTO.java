@@ -1,8 +1,10 @@
 package gzg.momen.todolist.dto;
 
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
-import org.antlr.v4.runtime.misc.NotNull;
 import org.springframework.validation.annotation.Validated;
 
 @Getter
@@ -10,12 +12,14 @@ import org.springframework.validation.annotation.Validated;
 @Validated
 public class UserDTO {
 
-    @NotNull
+    @NotBlank
     private String name;
 
-    @NotNull
+    @NotBlank
+    @Email
     private String email;
 
-    @NotNull
+    @NotBlank
+    @Size(min = 6, max = 20)
     private String password;
 }
