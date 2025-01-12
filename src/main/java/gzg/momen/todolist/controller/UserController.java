@@ -1,5 +1,7 @@
 package gzg.momen.todolist.controller;
 
+import gzg.momen.todolist.auth.AuthenticationRequest;
+import gzg.momen.todolist.auth.AuthenticationResponse;
 import gzg.momen.todolist.dto.UserDTO;
 import gzg.momen.todolist.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,15 +18,16 @@ import org.springframework.web.bind.annotation.RestController;
 public class UserController {
 
     @Autowired
-    UserService userService;
+    private UserService userService;
 
 
     @PostMapping("/register")
-    public ResponseEntity<Object> register(@RequestBody @Validated UserDTO user) {
-        Boolean userResponse = userService.createUser(user);
-        if(!userResponse) {
-            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
-        }
-        return new ResponseEntity<>(userResponse, HttpStatus.OK);
+    public ResponseEntity<AuthenticationResponse> register(@RequestBody @Validated UserDTO user) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(userService.createUser(user));
+    }
+
+    @PostMapping("/login")
+    public ResponseEntity<AuthenticationResponse> login(@RequestBody @Validated AuthenticationRequest user) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(userService.verify(user));
     }
 }
