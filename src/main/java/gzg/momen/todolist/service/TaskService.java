@@ -4,10 +4,7 @@ package gzg.momen.todolist.service;
 import gzg.momen.todolist.dto.TaskDTO;
 import gzg.momen.todolist.dto.TasksResponse;
 import gzg.momen.todolist.entity.Task;
-import gzg.momen.todolist.entity.TaskPage;
-import gzg.momen.todolist.entity.TaskSearchCriteria;
 import gzg.momen.todolist.entity.User;
-import gzg.momen.todolist.repository.TaskCriteriaRepository;
 import gzg.momen.todolist.repository.TaskRepository;
 import gzg.momen.todolist.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,9 +22,6 @@ public class TaskService {
 
     @Autowired
     private TaskRepository taskRepository;
-
-    @Autowired
-    private TaskCriteriaRepository taskCriteriaRepository;
 
     @Autowired
     private UserRepository userRepository;
@@ -73,22 +67,17 @@ public class TaskService {
         taskRepository.delete(existingTask);
     }
 
-    public Page<TaskDTO> getTasks(TaskPage taskPage, TaskSearchCriteria taskSearchCriteria, UserDetails userDetails) {
+    public TasksResponse getTasks(int pageNo, int pageSize , UserDetails userDetails) {
         User user = findUserByEmail(userDetails);
-        return taskCriteriaRepository.findAllWithFilters(taskPage, taskSearchCriteria, user.getUserId());
+        Pageable pageable = PageRequest.of(pageNo, pageSize);
+        Page<Task> tasks = taskRepository.findAllByUser_UserId(user.getUserId(), pageable);
+        List<Task> listOfTasks = tasks.getContent();
 
+        TasksResponse tasksResponse = new TasksResponse();
+        tasksResponse.setData(listOfTasks);
+        tasksResponse.setPage(tasks.getNumber());
+        tasksResponse.setLimit(tasks.getSize());
+        tasksResponse.setTotal(tasks.getNumberOfElements());
+        return tasksResponse;
     }
-//    public TasksResponse getTasks(int pageNo, int pageSize , UserDetails userDetails) {
-//        User user = findUserByEmail(userDetails);
-//        Pageable pageable = PageRequest.of(pageNo, pageSize);
-//        Page<Task> tasks = taskRepository.findAllByUser_UserId(user.getUserId(), pageable);
-//        List<Task> listOfTasks = tasks.getContent();
-//
-//        TasksResponse tasksResponse = new TasksResponse();
-//        tasksResponse.setData(listOfTasks);
-//        tasksResponse.setPage(tasks.getNumber());
-//        tasksResponse.setLimit(tasks.getSize());
-//        tasksResponse.setTotal(tasks.getNumberOfElements());
-//        return tasksResponse;
-//    }
 }

@@ -7,7 +7,7 @@ import java.util.List;
 
 @Data
 public class TasksResponse {
-    private List<TaskDTO> data;
+    private List<Task> data;
     private int page;
     private int limit;
     private int total;
