@@ -4,6 +4,8 @@ import lombok.*;
 import org.antlr.v4.runtime.misc.NotNull;
 
 @Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class TaskDTO {
 
     @NotNull
