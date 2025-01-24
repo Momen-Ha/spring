@@ -1,6 +1,7 @@
 package gzg.momen.todolist.repository;
 
-import gzg.momen.todolist.dto.TaskDTO;
+import gzg.momen.todolist.dto.TaskMapper;
+import gzg.momen.todolist.dto.TaskResponse;
 import gzg.momen.todolist.entity.Task;
 import gzg.momen.todolist.entity.TaskPage;
 import gzg.momen.todolist.entity.TaskSearchCriteria;
@@ -10,6 +11,7 @@ import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.CriteriaQuery;
 import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.*;
 import org.springframework.stereotype.Repository;
 
@@ -23,12 +25,15 @@ public class TaskCriteriaRepository {
     private final EntityManager entityManager;
     private final CriteriaBuilder criteriaBuilder;
 
+    @Autowired
+    private TaskMapper taskMapper;
+
     public TaskCriteriaRepository(EntityManager entityManager) {
         this.entityManager = entityManager;
         this.criteriaBuilder = entityManager.getCriteriaBuilder();
     }
 
-    public Page<TaskDTO> findAllWithFilters(TaskPage taskPage,
+    public Page<TaskResponse> findAllWithFilters(TaskPage taskPage,
                                             TaskSearchCriteria taskSearchCriteria,
                                             long userId) {
 
@@ -49,12 +54,12 @@ public class TaskCriteriaRepository {
 
         long tasksCount = getTaskCount(criteriaBuilder.and(userPredicate, filterPredicate));
 
-
-        return new PageImpl<TaskDTO>(
-                query.getResultList().stream()
-                        .map(task -> new TaskDTO(task.getTitle(), task.getDescription()))
-                        .collect(Collectors.toList())
+        PageImpl<TaskResponse> tasksPage = new PageImpl<TaskResponse>(query.getResultList().stream()
+                .map(task -> this.taskMapper.taskToTaskResponse(task))
+                .collect(Collectors.toList())
                 , pageable, tasksCount);
+        return tasksPage;
+
     }
 
 
@@ -63,8 +68,14 @@ public class TaskCriteriaRepository {
         List<Predicate> filterPredicates = new ArrayList<>();
         if(Objects.nonNull(taskSearchCriteria.getTitle())) {
             filterPredicates.add(
-                    criteriaBuilder.equal(taskRoot.get("title"),
+                    criteriaBuilder.like(taskRoot.get("title"),
                             "%" + taskSearchCriteria.getTitle() + "%")
+            );
+        }
+        if(Objects.nonNull(taskSearchCriteria.getDescription())) {
+            filterPredicates.add(
+                    criteriaBuilder.like(taskRoot.get("description"),
+                            "%" + taskSearchCriteria.getDescription() + "%")
             );
         }
         return criteriaBuilder.and(filterPredicates.toArray(new Predicate[0]));

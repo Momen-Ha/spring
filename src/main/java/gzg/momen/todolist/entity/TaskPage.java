@@ -10,5 +10,5 @@ public class TaskPage {
     private int pageNumber = 0;
     private int pageSize = 10;
     private Sort.Direction sortDirection = Sort.Direction.ASC;
-    private String sortProperty = "title";
+    private String sortProperty = "createDate";
 }

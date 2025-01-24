@@ -2,8 +2,8 @@ package gzg.momen.todolist.controller;
 
 
 import gzg.momen.todolist.dto.TaskDTO;
-import gzg.momen.todolist.dto.TasksResponse;
-import gzg.momen.todolist.entity.Task;
+import gzg.momen.todolist.dto.TaskResponse;
+import gzg.momen.todolist.dto.TasksPageResponse;
 import gzg.momen.todolist.entity.TaskPage;
 import gzg.momen.todolist.entity.TaskSearchCriteria;
 import gzg.momen.todolist.service.TaskService;
@@ -31,11 +31,11 @@ public class TaskController {
 
     @PostMapping
     @PreAuthorize("hasAuthority('ROLE_USER')")
-    public ResponseEntity<Task> createTask(@RequestBody @Validated TaskDTO task,
+    public ResponseEntity<TaskResponse> createTask(@RequestBody @Validated TaskDTO task,
                                            @AuthenticationPrincipal UserDetails user) {
 
         try {
-            Task createdTask = taskService.createNewTask(task, user);
+            TaskResponse createdTask = taskService.createNewTask(task, user);
             return new ResponseEntity<>(createdTask, HttpStatus.CREATED);
         } catch (Exception e) {
             return new ResponseEntity<>(null, HttpStatus.NOT_FOUND);
@@ -49,7 +49,7 @@ public class TaskController {
                                         @PathVariable Long id,
                                         @AuthenticationPrincipal UserDetails user) {
         try {
-            Task updatedTask = taskService.updateTask(task, id, user);
+            TaskResponse updatedTask = taskService.updateTask(task, id, user);
             return new ResponseEntity<>(updatedTask, HttpStatus.OK);
         } catch (SecurityException e) {
             return new ResponseEntity<>("Forbidden", HttpStatus.FORBIDDEN);
@@ -76,20 +76,19 @@ public class TaskController {
 
     @GetMapping("/all")
     @PreAuthorize("hasAuthority('ROLE_USER')")
-    public ResponseEntity<TasksResponse> getAllTasks(
+    public ResponseEntity<TasksPageResponse> getAllTasks(
             TaskPage taskPage,
             TaskSearchCriteria taskSearchCriteria,
             @AuthenticationPrincipal UserDetails user
     ) {
 
-        Page<TaskDTO> listOfTasks = taskService.getTasks(taskPage, taskSearchCriteria, user);
-//        TasksResponse tasks = taskService.getTasks(pageNo, pageSize, user);
+        Page<TaskResponse> listOfTasks = taskService.getTasks(taskPage, taskSearchCriteria, user);
 
-        TasksResponse tasks = new TasksResponse();
+        TasksPageResponse tasks = new TasksPageResponse();
         tasks.setData(listOfTasks.getContent());
         tasks.setPage(listOfTasks.getNumber());
-        tasks.setLimit(listOfTasks.getTotalPages());
-        tasks.setTotal(listOfTasks.getSize());
+        tasks.setLimit(listOfTasks.getSize());
+        tasks.setTotal(listOfTasks.getContent().size());
         return new ResponseEntity<>(tasks, HttpStatus.OK);
     }
 

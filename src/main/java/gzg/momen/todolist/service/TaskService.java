@@ -2,7 +2,8 @@ package gzg.momen.todolist.service;
 
 
 import gzg.momen.todolist.dto.TaskDTO;
-import gzg.momen.todolist.dto.TasksResponse;
+import gzg.momen.todolist.dto.TaskMapper;
+import gzg.momen.todolist.dto.TaskResponse;
 import gzg.momen.todolist.entity.Task;
 import gzg.momen.todolist.entity.TaskPage;
 import gzg.momen.todolist.entity.TaskSearchCriteria;
@@ -12,13 +13,11 @@ import gzg.momen.todolist.repository.TaskRepository;
 import gzg.momen.todolist.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
+import java.time.Instant;
 
 @Service
 public class TaskService {
@@ -32,6 +31,9 @@ public class TaskService {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private TaskMapper taskMapper;
+
     public User findUserByEmail(UserDetails userDetails) {
         String email = userDetails.getUsername();
         User user = userRepository.findByEmail(email);
@@ -41,17 +43,18 @@ public class TaskService {
         return user;
     }
 
-    public Task createNewTask(TaskDTO taskDTO, UserDetails userDetails) {
+    public TaskResponse createNewTask(TaskDTO taskDTO, UserDetails userDetails) {
         User user = findUserByEmail(userDetails);
         Task task = new Task();
         task.setUser(user);
         task.setTitle(taskDTO.getTitle());
         task.setDescription(taskDTO.getDescription());
-
-        return taskRepository.save(task);
+        task.setCreateDate(Instant.now());
+        taskRepository.save(task);
+        return taskMapper.taskToTaskResponse(task);
     }
 
-    public Task updateTask(TaskDTO task, Long taskId, UserDetails userDetails) {
+    public TaskResponse updateTask(TaskDTO task, Long taskId, UserDetails userDetails) {
         User user = findUserByEmail(userDetails);
         Task existingTask = taskRepository.findById(taskId)
                 .orElseThrow(() -> new IllegalArgumentException("Task not found!"));
@@ -60,7 +63,9 @@ public class TaskService {
         }
         existingTask.setTitle(task.getTitle());
         existingTask.setDescription(task.getDescription());
-        return taskRepository.save(existingTask);
+        taskRepository.save(existingTask);
+
+        return  taskMapper.taskToTaskResponse(existingTask);
     }
 
     public void deleteTask(Long taskId, UserDetails userDetails) {
@@ -73,22 +78,10 @@ public class TaskService {
         taskRepository.delete(existingTask);
     }
 
-    public Page<TaskDTO> getTasks(TaskPage taskPage, TaskSearchCriteria taskSearchCriteria, UserDetails userDetails) {
+    public Page<TaskResponse> getTasks(TaskPage taskPage, TaskSearchCriteria taskSearchCriteria, UserDetails userDetails) {
         User user = findUserByEmail(userDetails);
         return taskCriteriaRepository.findAllWithFilters(taskPage, taskSearchCriteria, user.getUserId());
 
     }
-//    public TasksResponse getTasks(int pageNo, int pageSize , UserDetails userDetails) {
-//        User user = findUserByEmail(userDetails);
-//        Pageable pageable = PageRequest.of(pageNo, pageSize);
-//        Page<Task> tasks = taskRepository.findAllByUser_UserId(user.getUserId(), pageable);
-//        List<Task> listOfTasks = tasks.getContent();
-//
-//        TasksResponse tasksResponse = new TasksResponse();
-//        tasksResponse.setData(listOfTasks);
-//        tasksResponse.setPage(tasks.getNumber());
-//        tasksResponse.setLimit(tasks.getSize());
-//        tasksResponse.setTotal(tasks.getNumberOfElements());
-//        return tasksResponse;
-//    }
+
 }
