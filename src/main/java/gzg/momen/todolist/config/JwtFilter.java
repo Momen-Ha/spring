@@ -2,6 +2,7 @@ package gzg.momen.todolist.config;
 
 
 import gzg.momen.todolist.Security.MyUserDetailsService;
+import gzg.momen.todolist.exceptions.InvalidTokenException;
 import gzg.momen.todolist.service.JWTService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -41,8 +42,9 @@ public class JwtFilter extends OncePerRequestFilter {
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
             token = authHeader.substring(7);
             email = jwtService.extractUserName(token);
+        } else {
+            throw new InvalidTokenException("Bearer missing");
         }
-
         if(email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
             UserDetails userDetails = context.getBean(MyUserDetailsService.class).loadUserByUsername(email);
             if(jwtService.validateToken(token, userDetails)) {
@@ -55,7 +57,7 @@ public class JwtFilter extends OncePerRequestFilter {
                 );
                 SecurityContextHolder.getContext().setAuthentication(authToken);
             }
-        }
+        } else throw new InvalidTokenException("Invalid token");
         filterChain.doFilter(request, response);
     }
 }

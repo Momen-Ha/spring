@@ -4,6 +4,7 @@ package gzg.momen.todolist.controller;
 import gzg.momen.todolist.dto.TaskDTO;
 import gzg.momen.todolist.dto.TasksResponse;
 import gzg.momen.todolist.entity.Task;
+import gzg.momen.todolist.exceptions.TaskNotFoundException;
 import gzg.momen.todolist.service.TaskService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -31,12 +32,7 @@ public class TaskController {
     public ResponseEntity<Task> createTask(@RequestBody @Validated TaskDTO task,
                                            @AuthenticationPrincipal UserDetails user) {
 
-        try {
-            Task createdTask = taskService.createNewTask(task, user);
-            return new ResponseEntity<>(createdTask, HttpStatus.CREATED);
-        } catch (Exception e) {
-            return new ResponseEntity<>(null, HttpStatus.NOT_FOUND);
-        }
+        return taskService.createNewTask(task, user);
 
     }
 
@@ -45,14 +41,7 @@ public class TaskController {
     public ResponseEntity<?> updateTask(@RequestBody @Validated TaskDTO task,
                                         @PathVariable Long id,
                                         @AuthenticationPrincipal UserDetails user) {
-        try {
-            Task updatedTask = taskService.updateTask(task, id, user);
-            return new ResponseEntity<>(updatedTask, HttpStatus.OK);
-        } catch (SecurityException e) {
-            return new ResponseEntity<>("Forbidden", HttpStatus.FORBIDDEN);
-        } catch (IllegalArgumentException e) {
-            return new ResponseEntity<>("Unauthorized", HttpStatus.UNAUTHORIZED);
-        }
+        return taskService.updateTask(task, id, user);
     }
 
 
@@ -61,14 +50,7 @@ public class TaskController {
     @PreAuthorize("hasAuthority('ROLE_USER')")
     public ResponseEntity<?> deleteTask(@PathVariable Long id,
                                         @AuthenticationPrincipal UserDetails user) {
-        try {
-            taskService.deleteTask(id, user);
-            return new ResponseEntity<>(HttpStatus.OK);
-        } catch (SecurityException e) {
-            return new ResponseEntity<>("Forbidden", HttpStatus.FORBIDDEN);
-        } catch (IllegalArgumentException e) {
-            return new ResponseEntity<>("Unauthorized", HttpStatus.UNAUTHORIZED);
-        }
+            return taskService.deleteTask(id, user);
     }
 
 
