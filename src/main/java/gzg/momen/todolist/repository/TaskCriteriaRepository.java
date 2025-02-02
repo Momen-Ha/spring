@@ -24,13 +24,12 @@ import java.util.stream.Collectors;
 public class TaskCriteriaRepository {
     private final EntityManager entityManager;
     private final CriteriaBuilder criteriaBuilder;
+    private final TaskMapper taskMapper;
 
-    @Autowired
-    private TaskMapper taskMapper;
-
-    public TaskCriteriaRepository(EntityManager entityManager) {
+    public TaskCriteriaRepository(EntityManager entityManager, TaskMapper taskMapper) {
         this.entityManager = entityManager;
         this.criteriaBuilder = entityManager.getCriteriaBuilder();
+        this.taskMapper = taskMapper;
     }
 
     public Page<TaskResponse> findAllWithFilters(TaskPage taskPage,

@@ -13,6 +13,6 @@ public class TasksPageResponse {
     private List<TaskResponse> data;
     private int page;
     private int limit;
-    private int total;
+    private long total;
 
 }
