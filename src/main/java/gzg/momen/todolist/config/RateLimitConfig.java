@@ -1,23 +1,29 @@
 package gzg.momen.todolist.config;
 
 
-import io.github.bucket4j.Bandwidth;
-import io.github.bucket4j.Bucket;
-import io.github.bucket4j.Refill;
+import gzg.momen.todolist.service.RateLimitService;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-
-import java.time.Duration;
+import org.springframework.core.Ordered;
 
 @Configuration
 public class RateLimitConfig {
 
+    // Configuration for rate limit service
     @Bean
-    public Bucket bucket() {
-        Bandwidth limit = Bandwidth.classic(20, Refill.greedy(20, Duration.ofMinutes(1)));
-         return Bucket.builder()
-                .addLimit(limit)
-                .build();
+    public RateLimitService rateLimitService() {
+        return new RateLimitService();
+    }
+
+    // Register the rate limit filter
+    @Bean
+    public FilterRegistrationBean<RateLimitFilter> rateLimitFilter(RateLimitService rateLimitService) {
+        FilterRegistrationBean<RateLimitFilter> registrationBean = new FilterRegistrationBean<>();
+        registrationBean.setFilter(new RateLimitFilter(rateLimitService));
+        registrationBean.addUrlPatterns("/*");
+        registrationBean.setOrder(Ordered.HIGHEST_PRECEDENCE);
+        return registrationBean;
     }
 }
 
