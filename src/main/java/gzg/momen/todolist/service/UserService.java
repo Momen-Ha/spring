@@ -16,16 +16,17 @@ import org.springframework.stereotype.Service;
 @Service
 public class UserService {
 
-    @Autowired
-    private UserRepository userRepository;
+    private final UserRepository userRepository;
+    private final AuthenticationManager authManager;
+    private final JWTService jwtService;
 
-    @Autowired
-    private AuthenticationManager authManager;
+    private final BCryptPasswordEncoder encoder = new BCryptPasswordEncoder(12);
 
-    @Autowired
-    private JWTService jwtService;
-
-    private BCryptPasswordEncoder encoder = new BCryptPasswordEncoder(12);
+    public UserService(UserRepository userRepository, AuthenticationManager authManager, JWTService jwtService) {
+        this.userRepository = userRepository;
+        this.authManager = authManager;
+        this.jwtService = jwtService;
+    }
 
 
     public AuthenticationResponse createUser(UserDTO userDTO) {

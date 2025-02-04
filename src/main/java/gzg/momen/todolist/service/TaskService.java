@@ -2,95 +2,94 @@ package gzg.momen.todolist.service;
 
 
 import gzg.momen.todolist.dto.TaskDTO;
-import gzg.momen.todolist.dto.TasksResponse;
+import gzg.momen.todolist.dto.TaskMapper;
+import gzg.momen.todolist.dto.TaskResponse;
 import gzg.momen.todolist.entity.Task;
+import gzg.momen.todolist.entity.TaskPage;
+import gzg.momen.todolist.entity.TaskSearchCriteria;
 import gzg.momen.todolist.entity.User;
-import gzg.momen.todolist.exceptions.TaskNotFoundException;
+import gzg.momen.todolist.repository.TaskCriteriaRepository;
 import gzg.momen.todolist.repository.TaskRepository;
 import gzg.momen.todolist.repository.UserRepository;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
+import java.nio.file.AccessDeniedException;
+import java.time.Instant;
+import java.util.Optional;
 
 @Service
 public class TaskService {
 
-    @Autowired
-    private TaskRepository taskRepository;
+    private final TaskRepository taskRepository;
+    private final TaskCriteriaRepository taskCriteriaRepository;
+    private final UserRepository userRepository;
+    private final TaskMapper taskMapper;
 
-    @Autowired
-    private UserRepository userRepository;
-    
+    public TaskService(TaskRepository taskRepository, TaskCriteriaRepository taskCriteriaRepository, UserRepository userRepository, TaskMapper taskMapper) {
+        this.taskRepository = taskRepository;
+        this.taskCriteriaRepository = taskCriteriaRepository;
+        this.userRepository = userRepository;
+        this.taskMapper = taskMapper;
+    }
+
     public User findUserByEmail(UserDetails userDetails) {
         String email = userDetails.getUsername();
         User user = userRepository.findByEmail(email);
         if (user == null) {
-            throw new UsernameNotFoundException("user not found");
+            throw new UsernameNotFoundException("user with email: " + userDetails.getUsername() + " not found");
         }
         return user;
     }
 
-    public ResponseEntity<Task> createNewTask(TaskDTO taskDTO, UserDetails userDetails) {
+    @Transactional
+    public TaskResponse createNewTask(TaskDTO taskDTO, UserDetails userDetails) {
         User user = findUserByEmail(userDetails);
         Task task = new Task();
         task.setUser(user);
         task.setTitle(taskDTO.getTitle());
         task.setDescription(taskDTO.getDescription());
-        try {
-            taskRepository.save(task);
-        } catch (Exception e) {
-            return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
-        }
-        return new ResponseEntity<>(task, HttpStatus.CREATED);
+        task.setCreateDate(Instant.now());
+        taskRepository.save(task);
+        return taskMapper.taskToTaskResponse(task);
     }
 
-    public ResponseEntity<Task> updateTask(TaskDTO task, Long taskId, UserDetails userDetails) {
+    @Transactional
+    public TaskResponse updateTask(TaskDTO task, Long taskId, UserDetails userDetails) throws AccessDeniedException {
         User user = findUserByEmail(userDetails);
         Task existingTask = taskRepository.findById(taskId)
-                .orElseThrow(() -> new TaskNotFoundException("Task Not Found"));
+                .orElseThrow(() -> new IllegalArgumentException("Task not found with ID: " + taskId));
         if(!existingTask.getUser().getUserId().equals(user.getUserId())) {
-            throw new SecurityException("user not authorized to update");
+            throw new AccessDeniedException("User " + user.getUserId() + " not authorized to delete task " + taskId);
         }
         existingTask.setTitle(task.getTitle());
         existingTask.setDescription(task.getDescription());
         taskRepository.save(existingTask);
-        return ResponseEntity.ok(existingTask);
+
+        return  taskMapper.taskToTaskResponse(existingTask);
     }
 
-    public ResponseEntity<?> deleteTask(Long taskId, UserDetails userDetails) {
+    @Transactional
+    public void deleteTask(Long taskId, UserDetails userDetails) throws AccessDeniedException {
         User user = findUserByEmail(userDetails);
         Task existingTask = taskRepository.findById(taskId)
-                .orElseThrow(() -> new IllegalArgumentException("Task not found!"));
+                .orElseThrow(() -> new IllegalArgumentException("Task not found with ID: " + taskId));
+
         if(!existingTask.getUser().getUserId().equals(user.getUserId())) {
-            throw new SecurityException("not authorized");
-        }
-        try {
-            taskRepository.delete(existingTask);
-        } catch (Exception e) {
-            return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
-        }
-        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+            throw new AccessDeniedException("User " + user.getUserId() + " not authorized to delete task " + taskId);        }
+        taskRepository.delete(existingTask);
     }
 
-    public TasksResponse getTasks(int pageNo, int pageSize , UserDetails userDetails) {
+    public Page<TaskResponse> getTasks(TaskPage taskPage, TaskSearchCriteria taskSearchCriteria, UserDetails userDetails) {
+        taskPage = Optional.ofNullable(taskPage).orElse(new TaskPage());
+        taskSearchCriteria = Optional.ofNullable(taskSearchCriteria).orElse(new TaskSearchCriteria());
         User user = findUserByEmail(userDetails);
-        Pageable pageable = PageRequest.of(pageNo, pageSize);
-        Page<Task> tasks = taskRepository.findAllByUser_UserId(user.getUserId(), pageable);
-        List<Task> listOfTasks = tasks.getContent();
+        return taskCriteriaRepository.findAllWithFilters(taskPage, taskSearchCriteria, user.getUserId());
 
-        TasksResponse tasksResponse = new TasksResponse();
-        tasksResponse.setData(listOfTasks);
-        tasksResponse.setPage(tasks.getNumber());
-        tasksResponse.setLimit(tasks.getSize());
-        tasksResponse.setTotal(tasks.getNumberOfElements());
-        return tasksResponse;
     }
+
 }
