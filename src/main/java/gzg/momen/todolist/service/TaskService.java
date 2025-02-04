@@ -8,17 +8,17 @@ import gzg.momen.todolist.entity.Task;
 import gzg.momen.todolist.entity.TaskPage;
 import gzg.momen.todolist.entity.TaskSearchCriteria;
 import gzg.momen.todolist.entity.User;
+import gzg.momen.todolist.exceptions.TaskNotFoundException;
 import gzg.momen.todolist.repository.TaskCriteriaRepository;
 import gzg.momen.todolist.repository.TaskRepository;
 import gzg.momen.todolist.repository.UserRepository;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.nio.file.AccessDeniedException;
 import java.time.Instant;
 import java.util.Optional;
 
@@ -62,10 +62,12 @@ public class TaskService {
     public TaskResponse updateTask(TaskDTO task, Long taskId, UserDetails userDetails) throws AccessDeniedException {
         User user = findUserByEmail(userDetails);
         Task existingTask = taskRepository.findById(taskId)
-                .orElseThrow(() -> new IllegalArgumentException("Task not found with ID: " + taskId));
+                .orElseThrow(() -> new TaskNotFoundException("Task not found with ID: " + taskId));
+
         if(!existingTask.getUser().getUserId().equals(user.getUserId())) {
-            throw new AccessDeniedException("User " + user.getUserId() + " not authorized to delete task " + taskId);
+            throw new AccessDeniedException("User " + user.getUserId() + " not authorized to update task " + taskId);
         }
+
         existingTask.setTitle(task.getTitle());
         existingTask.setDescription(task.getDescription());
         taskRepository.save(existingTask);
@@ -77,7 +79,7 @@ public class TaskService {
     public void deleteTask(Long taskId, UserDetails userDetails) throws AccessDeniedException {
         User user = findUserByEmail(userDetails);
         Task existingTask = taskRepository.findById(taskId)
-                .orElseThrow(() -> new IllegalArgumentException("Task not found with ID: " + taskId));
+                .orElseThrow(() -> new TaskNotFoundException("Task not found with ID: " + taskId));
 
         if(!existingTask.getUser().getUserId().equals(user.getUserId())) {
             throw new AccessDeniedException("User " + user.getUserId() + " not authorized to delete task " + taskId);        }
