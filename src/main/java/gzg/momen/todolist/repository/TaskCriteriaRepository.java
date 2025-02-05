@@ -46,8 +46,8 @@ public class TaskCriteriaRepository {
         setOrder(taskPage, criteriaQuery, taskRoot);
 
         TypedQuery<Task> query = entityManager.createQuery(criteriaQuery);
-        query.setFirstResult(taskPage.getPageNumber() * taskPage.getPageSize());
-        query.setMaxResults(taskPage.getPageSize());
+        query.setFirstResult(taskPage.getPage() * taskPage.getLimit());
+        query.setMaxResults(taskPage.getLimit());
 
         Pageable pageable = getPageable(taskPage);
 
@@ -90,7 +90,7 @@ public class TaskCriteriaRepository {
 
     private Pageable getPageable(TaskPage taskPage) {
         Sort sort = Sort.by(taskPage.getSortDirection(), taskPage.getSortProperty());
-        return PageRequest.of(taskPage.getPageNumber(), taskPage.getPageSize(), sort);
+        return PageRequest.of(taskPage.getPage(), taskPage.getLimit(), sort);
     }
 
     private long getTaskCount(Predicate filterPredicate) {

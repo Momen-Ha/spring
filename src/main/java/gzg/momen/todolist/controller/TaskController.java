@@ -7,9 +7,8 @@ import gzg.momen.todolist.dto.TasksPageResponse;
 import gzg.momen.todolist.entity.TaskPage;
 import gzg.momen.todolist.entity.TaskSearchCriteria;
 import gzg.momen.todolist.service.TaskService;
-import io.github.bucket4j.Bucket;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -18,8 +17,6 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-
-import java.nio.file.AccessDeniedException;
 
 
 @RestController
@@ -35,14 +32,16 @@ public class TaskController {
 
     @PostMapping
     @PreAuthorize("hasAuthority('ROLE_USER')")
-    public ResponseEntity<TaskResponse> createTask(@RequestBody @Validated TaskDTO task,
+    public ResponseEntity<?> createTask(@RequestBody @Validated TaskDTO task,
                                            @AuthenticationPrincipal UserDetails user) {
 
         try {
             TaskResponse createdTask = taskService.createNewTask(task, user);
             return new ResponseEntity<>(createdTask, HttpStatus.CREATED);
+        } catch (DataIntegrityViolationException e) {
+            return new ResponseEntity<>("conflict: " + e.getMessage(), HttpStatus.CONFLICT);
         } catch (DataAccessException e) {
-            return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
+            return new ResponseEntity<>(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
 
     }
@@ -58,8 +57,6 @@ public class TaskController {
             return new ResponseEntity<>(updatedTask, HttpStatus.OK);
         } catch (IllegalArgumentException e) {
             return new ResponseEntity<>("Unauthorized", HttpStatus.UNAUTHORIZED);
-        } catch (AccessDeniedException e) {
-            return new ResponseEntity<>("Forbidden", HttpStatus.FORBIDDEN);
         }
     }
 
@@ -72,8 +69,6 @@ public class TaskController {
         try {
             taskService.deleteTask(id, user);
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
-        } catch (AccessDeniedException e) {
-            return new ResponseEntity<>("Forbidden", HttpStatus.FORBIDDEN);
         } catch (IllegalArgumentException e) {
             return new ResponseEntity<>("Unauthorized", HttpStatus.UNAUTHORIZED);
         }
