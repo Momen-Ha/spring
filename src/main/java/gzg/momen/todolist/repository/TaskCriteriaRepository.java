@@ -51,7 +51,7 @@ public class TaskCriteriaRepository {
 
         Pageable pageable = getPageable(taskPage);
 
-        long tasksCount = getTaskCount(criteriaBuilder.and(userPredicate, filterPredicate));
+        long tasksCount = getTaskCount(userId);
 
         PageImpl<TaskResponse> tasksPage = new PageImpl<TaskResponse>(query.getResultList().stream()
                 .map(task -> this.taskMapper.taskToTaskResponse(task))
@@ -93,11 +93,12 @@ public class TaskCriteriaRepository {
         return PageRequest.of(taskPage.getPage(), taskPage.getLimit(), sort);
     }
 
-    private long getTaskCount(Predicate filterPredicate) {
+    private long getTaskCount(Long userId) {
         CriteriaQuery<Long> countQuery = criteriaBuilder.createQuery(Long.class);
         Root<Task> countRoot = countQuery.from(Task.class);
-        countQuery.select(criteriaBuilder.count(countRoot));
+        Predicate userPredicate = criteriaBuilder.equal(countRoot.get("user").get("userId"), userId);
 
+        countQuery.select(criteriaBuilder.count(countRoot)).where(userPredicate);
         return entityManager.createQuery(countQuery).getSingleResult();
     }
 }
