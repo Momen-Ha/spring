@@ -42,7 +42,8 @@ public class GlobalExceptionHandler {
         errorObject.setStatusCode(HttpStatus.NOT_FOUND.value());
         errorObject.setMessage(e.getMessage());
         errorObject.setTimestamp(new Date());
-        return new ResponseEntity<>(errorObject, HttpStatus.NOT_FOUND);
+        return new ResponseEntity<>(errorObject, HttpStatus.UNAUTHORIZED);
+
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -71,5 +72,6 @@ public class GlobalExceptionHandler {
         errorObject.setTimestamp(new Date());
         return new ResponseEntity<ErrorObject>(errorObject, HttpStatus.FORBIDDEN);
     }
+
 
 }
