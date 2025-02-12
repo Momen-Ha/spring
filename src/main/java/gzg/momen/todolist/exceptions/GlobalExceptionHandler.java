@@ -39,10 +39,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(UsernameNotFoundException.class)
     public ResponseEntity<ErrorObject> handleUserNameNotFoundException(UsernameNotFoundException e, WebRequest request) {
         ErrorObject errorObject = new ErrorObject();
-        errorObject.setStatusCode(HttpStatus.UNAUTHORIZED.value());
+        errorObject.setStatusCode(HttpStatus.NOT_FOUND.value());
         errorObject.setMessage(e.getMessage());
         errorObject.setTimestamp(new Date());
         return new ResponseEntity<>(errorObject, HttpStatus.UNAUTHORIZED);
+
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -71,5 +72,6 @@ public class GlobalExceptionHandler {
         errorObject.setTimestamp(new Date());
         return new ResponseEntity<ErrorObject>(errorObject, HttpStatus.FORBIDDEN);
     }
+
 
 }
